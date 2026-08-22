@@ -20,3 +20,5 @@ embarked 	Port of Embarkation 	C = Cherbourg, Q = Queenstown, S = Southampton
 so it would be like that : 
 
 ( PassengerId,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked )
+
+This code has Scoring of 74.4% in kaggle platform so it means it predicted the survival of 74.1% correctly
