@@ -1,46 +1,53 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-# Load training data
 train_df = pd.read_csv('train.csv')
-
-# Load the testing data (missing answers)
 test_df = pd.read_csv('test.csv')
 
-# Family size
-train_df['FamilySize'] = train_df['SibSp'] + train_df['Parch'] + 1
+combined = pd.concat([train_df, test_df], sort=False)
 
-# missing data
-train_df['Age'] = train_df['Age'].fillna(train_df['Age'].median())
-train_df['Fare'] = train_df['Fare'].fillna(train_df['Fare'].median())
+combined['Title'] = combined['Name'].str.extract(r' ([A-Za-z]+)\.', expand=False)
 
-# text to numbers
-train_df['Sex'] = train_df['Sex'].map({'male': 0, 'female': 1})
+combined['Title'] = combined['Title'].replace(['Lady', 'Countess','Capt', 'Col', 'Don', 'Dr', 'Major', 'Rev', 'Sir', 'Jonkheer', 'Dona'], 'Rare')
+combined['Title'] = combined['Title'].replace('Mlle', 'Miss')
+combined['Title'] = combined['Title'].replace('Ms', 'Miss')
+combined['Title'] = combined['Title'].replace('Mme', 'Mrs')
 
-feature_columns = ['Pclass', 'Sex', 'Age', 'Fare', 'FamilySize']
+combined['Age'] = combined.groupby('Title')['Age'].transform(lambda x: x.fillna(x.median()))
+
+combined['Fare'] = combined['Fare'].fillna(combined['Fare'].median())
+
+combined['Embarked'] = combined['Embarked'].fillna(combined['Embarked'].mode()[0])
+
+combined['FamilySize'] = combined['SibSp'] + combined['Parch'] + 1
+
+combined['Sex'] = combined['Sex'].map({'male': 0, 'female': 1}).astype(int)
+
+title_mapping = {"Mr": 1, "Miss": 2, "Mrs": 3, "Master": 4, "Rare": 5}
+combined['Title'] = combined['Title'].map(title_mapping).fillna(0)
+
+embarked_mapping = {'S': 0, 'C': 1, 'Q': 2}
+combined['Embarked'] = combined['Embarked'].map(embarked_mapping).astype(int)
+
+train_df = combined[combined['Survived'].notnull()]
+
+test_df = combined[combined['Survived'].isnull()]
+
+feature_columns = ['Pclass', 'Sex', 'Age', 'Fare', 'FamilySize', 'Title', 'Embarked']
+
 X_train = train_df[feature_columns]
 y_train = train_df['Survived']
-
-test_df['FamilySize'] = test_df['SibSp'] + test_df['Parch'] + 1
-test_df['Age'] = test_df['Age'].fillna(train_df['Age'].median())
-test_df['Fare'] = test_df['Fare'].fillna(train_df['Fare'].median())
-test_df['Sex'] = test_df['Sex'].map({'male': 0, 'female': 1})
-
 X_test = test_df[feature_columns]
 
-
-# START
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-
-# train it (:
+model = RandomForestClassifier(n_estimators=100, max_depth=5, min_samples_split=4, random_state=42)
 model.fit(X_train, y_train)
+
 predictions = model.predict(X_test)
 
-# csv
 submission = pd.DataFrame({
-    'PassengerId': test_df['PassengerId'],
-    'Survived': predictions
+    'PassengerId': test_df['PassengerId'].astype(int),
+    'Survived': predictions.astype(int)
 })
 
-submission.to_csv('submission.csv', index=False)
-print("submission.csv created successfully! Ready to upload to Kaggle.")
+submission.to_csv('submission_v2.csv', index=False)
+print("submission_v2.csv created successfully! Ready to upload to Kaggle.")
