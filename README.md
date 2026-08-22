@@ -1,4 +1,5 @@
 Just simple python code to predict the survivals based on few factors like :
+
 pclass 	Ticket class 	1 = 1st, 2 = 2nd, 3 = 3rd
 
 sex 	gender
